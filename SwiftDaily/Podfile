@@ -12,5 +12,5 @@ pod 'Alamofire'
 pod ‘HandyJSON’
 pod 'RxSwift'
 pod 'RxCocoa'
-
+pod 'Kingfisher'
 end
