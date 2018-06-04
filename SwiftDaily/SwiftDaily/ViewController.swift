@@ -18,6 +18,7 @@ enum CustomNSError{
 }
 
 
+
 class ViewController: UIViewController,UICollectionViewDelegate,UICollectionViewDataSource,MyWaterFallFlowDelegate,TestColllectionViewCellDelegate {
     
     var extraHeight:Float = 18
@@ -28,12 +29,12 @@ class ViewController: UIViewController,UICollectionViewDelegate,UICollectionView
     
     //RxSwift 关于JSON转模型的尝试  配合HandyJSON
     var disposeBag = DisposeBag()
-    var templateJSON:Observable<[Template]> = Observable.create { (observer) -> Disposable in
+    var templateJSON:Single<[Template]> = Single.create { single -> Disposable in
         let header:Dictionary = ["x-api-version":"7","Content-Type":"application/json"]
         Alamofire.request("http://testappapi.rabbitpre.com/market/esee/template/recommend_list?page=1&page_size=20",method: .get,headers: header).validate().responseJSON { (res) in
             
             guard let resData = res.data,let jsonStr:String = String.init(data: resData, encoding: .utf8) else{
-                observer.onError(res.error!)
+                single(SingleEvent.error(res.error!))
                 return
             }
             
@@ -41,8 +42,8 @@ class ViewController: UIViewController,UICollectionViewDelegate,UICollectionView
                 return;
             }
             
-            observer.onNext(templates)
-            observer.onCompleted()
+            single(SingleEvent.success(templates))
+           
         }
         return Disposables.create{
            
@@ -72,11 +73,21 @@ class ViewController: UIViewController,UICollectionViewDelegate,UICollectionView
         collectionView.register(TestColllectionViewCell.classForCoder(), forCellWithReuseIdentifier: "colCell")
         collectionView.delegate = self
         collectionView.dataSource = self
+        
+        
+//        collectionView.rx.setDelegate(self).disposed(by: disposeBag)
+//        collectionView.rx.itemSelected.map { [weak self] indexPath in
+//            
+//        }
+//        
+        
+        
         self.view.addSubview(collectionView)
         collectionView.snp.makeConstraints { (make) in
             make.edges.equalTo(UIEdgeInsets.init(top: 64, left: 0, bottom: 0, right: 0))
         }
         
+  
         self.requestData()
         //        self.requestAlbumData()
     }
@@ -94,28 +105,30 @@ class ViewController: UIViewController,UICollectionViewDelegate,UICollectionView
     
     
     func requestData (){
-        templateJSON .subscribe(onNext: { [weak self] tplArr in
-            print("取得 json 成功: \(tplArr)")
-            self?.template_array = tplArr
-        }, onError: { error in
-            print("取得 json 失败 Error: \(error.localizedDescription)")
-        }, onCompleted: { [weak self] in
-            self?.collectionView?.reloadData()
-            print("取得 json 任务成功完成")
-        })
-            .disposed(by: disposeBag)
+        
+        templateJSON.subscribe(
+            onSuccess:{ [weak self] templatesArr in
+                self?.template_array = templatesArr
+                self?.collectionView?.reloadData()
+            },
+            onError:{ error in
+                print("Error : \(error)")
+            }
+        ).disposed(by: disposeBag)
+        
+//
+//        templateJSON .subscribe(onNext: { [weak self] tplArr in
+//            print("取得 json 成功: \(tplArr)")
+//            self?.template_array = tplArr
+//        }, onError: { error in
+//            print("取得 json 失败 Error: \(error.localizedDescription)")
+//        }, onCompleted: { [weak self] in
+//            self?.collectionView?.reloadData()
+//            print("取得 json 任务成功完成")
+//        })
+//        .disposed(by: disposeBag)
     }
     
-    func getJSONStringFromDictionary(dictionary:NSDictionary) -> String {
-        if (!JSONSerialization.isValidJSONObject(dictionary)) {
-            print("无法解析出JSONString")
-            return ""
-        }
-        let data : NSData! = try? JSONSerialization.data(withJSONObject: dictionary, options: []) as NSData!
-        let JSONString = NSString(data:data as Data,encoding: String.Encoding.utf8.rawValue)
-        return JSONString! as String
-        
-    }
     
     func heightForViewExceptImage(collectionViewCell: TestColllectionViewCell, height: CGFloat) {
         if height > 0 {

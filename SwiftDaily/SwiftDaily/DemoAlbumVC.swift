@@ -8,17 +8,36 @@
 
 import Foundation
 import UIKit
-
+import RxCocoa
+import RxSwift
 
 class DemoAlbumVC :UIViewController,UITableViewDelegate,UITableViewDataSource {
    
     var albumsArray:Array = [KLAssetsGroup]()
     var albumListView:UITableView?
     var currentAlbum:KLAssetsGroup?
+    var disposeBag = DisposeBag()
 
     override func viewDidLoad() {
         super.viewDidLoad()
         // Do any additional setup after loading the view, typically from a nib.
+        
+        
+        let cancelBtn = UIButton.init()
+        self.navigationItem.leftBarButtonItem = UIBarButtonItem.init(customView: cancelBtn)
+        cancelBtn.backgroundColor = UIColor.blue
+        cancelBtn.frame = CGRect(x: 0, y: 0, width: 44, height: 44)
+        cancelBtn.titleLabel?.text = "Back"
+        cancelBtn.rx.tap.subscribe(
+            onNext:{ [weak self] in
+                self?.dismiss(animated: true, completion: nil)
+                print("back tap")
+            }
+        ).disposed(by: disposeBag)
+//
+        
+//
+        
         self.setupUI();
         self.requestAlbumData()
     }
